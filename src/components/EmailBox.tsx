@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Copy, RefreshCw, Edit2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getEmailAddress, setEmailUser, forgetMe } from '../lib/api';
-import { AVAILABLE_DOMAINS } from '../lib/utils';
+import { AVAILABLE_DOMAINS, DEFAULT_DOMAIN } from '../lib/utils';
 
 export default function EmailBox() {
   const [emailAddress, setEmailAddress] = useState('');
   const [sidToken, setSidToken] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
-  const [selectedDomain, setSelectedDomain] = useState(AVAILABLE_DOMAINS[0]);
+  const [selectedDomain, setSelectedDomain] = useState(DEFAULT_DOMAIN);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -19,8 +19,9 @@ export default function EmailBox() {
     if (storedEmail && storedToken) {
       setEmailAddress(storedEmail);
       setSidToken(storedToken);
-      const [user] = storedEmail.split('@');
+      const [user, domain] = storedEmail.split('@');
       setUsername(user);
+      setSelectedDomain(domain || DEFAULT_DOMAIN);
     } else {
       generateNewEmail();
     }
@@ -32,21 +33,26 @@ export default function EmailBox() {
       const response = await getEmailAddress();
       setEmailAddress(response.email_addr);
       setSidToken(response.sid_token);
-      const [user] = response.email_addr.split('@');
+      const [user, domain] = response.email_addr.split('@');
       setUsername(user);
+      setSelectedDomain(domain || DEFAULT_DOMAIN);
       
       localStorage.setItem('tempEmail', response.email_addr);
       localStorage.setItem('sidToken', response.sid_token);
     } catch (error) {
-      toast.error('Failed to generate email address');
+      console.error('Error generating email:', error);
+      toast.error('Failed to generate email address. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(emailAddress);
-    toast.success('Email address copied to clipboard');
+    navigator.clipboard.writeText(emailAddress).then(() => {
+      toast.success('Email address copied to clipboard');
+    }).catch(() => {
+      toast.error('Failed to copy email address');
+    });
   };
 
   const handleRefresh = () => {
@@ -67,21 +73,27 @@ export default function EmailBox() {
 
     try {
       setIsLoading(true);
-      const response = await setEmailUser(username, sidToken);
-      setEmailAddress(response.email_addr);
-      localStorage.setItem('tempEmail', response.email_addr);
-      setIsEditing(false);
-      toast.success('Email address updated');
+      const response = await setEmailUser(username, sidToken, selectedDomain);
+      if (response && response.email_addr) {
+        setEmailAddress(response.email_addr);
+        localStorage.setItem('tempEmail', response.email_addr);
+        setIsEditing(false);
+        toast.success('Email address updated');
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
-      toast.error('Failed to update email address');
+      console.error('Error updating email:', error);
+      toast.error('Failed to update email address. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    const [currentUser] = emailAddress.split('@');
+    const [currentUser, currentDomain] = emailAddress.split('@');
     setUsername(currentUser);
+    setSelectedDomain(currentDomain || DEFAULT_DOMAIN);
     setIsEditing(false);
   };
 
@@ -91,11 +103,12 @@ export default function EmailBox() {
       await forgetMe(sidToken, emailAddress);
       localStorage.removeItem('tempEmail');
       localStorage.removeItem('sidToken');
-      localStorage.removeItem('inbox'); // Clear stored inbox when generating new email
-      generateNewEmail();
+      localStorage.removeItem('inbox');
+      await generateNewEmail();
       toast.success('Generated new email address');
     } catch (error) {
-      toast.error('Failed to generate new email address');
+      console.error('Error deleting email:', error);
+      toast.error('Failed to generate new email address. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +147,7 @@ export default function EmailBox() {
             onClick={handleCopy}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             title="Copy email address"
+            disabled={isLoading}
           >
             <Copy className="w-5 h-5" />
           </button>
@@ -159,6 +173,7 @@ export default function EmailBox() {
                 onClick={handleCancel}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-red-600"
                 title="Cancel editing"
+                disabled={isLoading}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -168,6 +183,7 @@ export default function EmailBox() {
               onClick={handleEdit}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="Edit email address"
+              disabled={isLoading}
             >
               <Edit2 className="w-5 h-5" />
             </button>

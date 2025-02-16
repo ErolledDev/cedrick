@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { getRandomDomain } from './utils';
 
-// Use different base URLs for development and production
+// Use corsproxy.io for production to handle CORS
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://api.guerrillamail.com/ajax.php'
+  ? 'https://corsproxy.io/?https://api.guerrillamail.com/ajax.php'
   : '/api/ajax.php';
 
 interface EmailResponse {
@@ -43,9 +43,6 @@ interface EmailContent {
 }
 
 // Configure axios defaults
-axios.defaults.withCredentials = true;
-
-// Create axios instance with default config
 const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
@@ -55,83 +52,83 @@ const api = axios.create({
 
 export async function getEmailAddress(sidToken?: string): Promise<EmailResponse> {
   try {
-    const params = {
+    const params = new URLSearchParams({
       f: 'get_email_address',
       lang: 'en',
       site: getRandomDomain(),
-      ...(sidToken && { sid_token: sidToken })
-    };
+      ...(sidToken ? { sid_token: sidToken } : {})
+    });
 
-    const response = await api.get(API_BASE_URL, { params });
+    const response = await api.get(`${API_BASE_URL}?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error getting email address:', error);
-    throw error;
+    throw new Error('Failed to get email address');
   }
 }
 
-export async function setEmailUser(emailUser: string, sidToken: string): Promise<EmailResponse> {
+export async function setEmailUser(emailUser: string, sidToken: string, domain: string): Promise<EmailResponse> {
   try {
-    const params = {
+    const params = new URLSearchParams({
       f: 'set_email_user',
       email_user: emailUser,
       lang: 'en',
-      site: getRandomDomain(),
+      site: domain,
       sid_token: sidToken
-    };
+    });
 
-    const response = await api.get(API_BASE_URL, { params });
+    const response = await api.get(`${API_BASE_URL}?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error setting email user:', error);
-    throw error;
+    throw new Error('Failed to set email user');
   }
 }
 
 export async function checkEmail(sidToken: string, seq: number): Promise<EmailListResponse> {
   try {
-    const params = {
+    const params = new URLSearchParams({
       f: 'check_email',
       sid_token: sidToken,
-      seq
-    };
+      seq: seq.toString()
+    });
 
-    const response = await api.get(API_BASE_URL, { params });
+    const response = await api.get(`${API_BASE_URL}?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error checking email:', error);
-    throw error;
+    throw new Error('Failed to check email');
   }
 }
 
 export async function fetchEmail(sidToken: string, emailId: string): Promise<EmailContent> {
   try {
-    const params = {
+    const params = new URLSearchParams({
       f: 'fetch_email',
       sid_token: sidToken,
       email_id: emailId
-    };
+    });
 
-    const response = await api.get(API_BASE_URL, { params });
+    const response = await api.get(`${API_BASE_URL}?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching email:', error);
-    throw error;
+    throw new Error('Failed to fetch email');
   }
 }
 
 export async function forgetMe(sidToken: string, emailAddr: string): Promise<boolean> {
   try {
-    const params = {
+    const params = new URLSearchParams({
       f: 'forget_me',
       sid_token: sidToken,
       email_addr: emailAddr
-    };
+    });
 
-    const response = await api.get(API_BASE_URL, { params });
+    const response = await api.get(`${API_BASE_URL}?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error forgetting email:', error);
-    throw error;
+    throw new Error('Failed to forget email');
   }
 }

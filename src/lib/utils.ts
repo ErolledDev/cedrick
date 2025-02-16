@@ -5,8 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const DEFAULT_DOMAIN = "sharklasers.com";
+
 export const AVAILABLE_DOMAINS = [
-  "sharklasers.com",
+  DEFAULT_DOMAIN,
   "guerrillamailblock.com",
   "guerrillamail.com",
   "guerrillamail.info",
@@ -20,7 +22,7 @@ export const AVAILABLE_DOMAINS = [
 ];
 
 export function getRandomDomain() {
-  return AVAILABLE_DOMAINS[Math.floor(Math.random() * AVAILABLE_DOMAINS.length)];
+  return DEFAULT_DOMAIN; // Always return sharklasers.com as default
 }
 
 export function formatDate(timestamp: number) {
