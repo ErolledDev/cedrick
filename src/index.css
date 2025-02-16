@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.blocked-image {
+  @apply bg-gray-100 text-gray-500 p-4 text-center rounded-lg my-2;
+}
+
+.prose img {
+  @apply max-w-full h-auto rounded-lg;
+}
+
+.prose {
+  @apply text-gray-800;
+}
